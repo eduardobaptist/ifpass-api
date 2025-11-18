@@ -9,7 +9,12 @@ export default class extends BaseSchema {
       table.string('full_name').nullable()
       table.string('email', 254).notNullable().unique()
       table.string('password').notNullable()
-
+      table.enu('type', ['internal', 'external'], {
+        useNative: true,
+        enumName: 'user_type'
+      })
+      
+      table.string('profile_pic_url').nullable()
       table.timestamp('created_at').notNullable()
       table.timestamp('updated_at').nullable()
     })
@@ -17,5 +22,6 @@ export default class extends BaseSchema {
 
   async down() {
     this.schema.dropTable(this.tableName)
+    await this.schema.raw('DROP TYPE IF EXISTS public.user_type CASCADE')
   }
 }

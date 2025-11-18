@@ -10,6 +10,11 @@ const AuthFinder = withAuthFinder(() => hash.use('scrypt'), {
   passwordColumnName: 'password',
 })
 
+export enum UserType {
+  INTERNAL = 'internal',
+  EXTERNAL = 'external'
+}
+
 export default class User extends compose(BaseModel, AuthFinder) {
   @column({ isPrimary: true })
   declare id: number
@@ -22,6 +27,12 @@ export default class User extends compose(BaseModel, AuthFinder) {
 
   @column({ serializeAs: null })
   declare password: string
+
+  @column()
+  declare type: UserType
+
+  @column()
+  declare profile_pic_url: string
 
   @column.dateTime({ autoCreate: true })
   declare createdAt: DateTime
