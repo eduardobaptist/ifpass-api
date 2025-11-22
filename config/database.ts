@@ -12,10 +12,14 @@ const dbConfig = defineConfig({
         user: env.get('DB_USER'),
         password: env.get('DB_PASSWORD'),
         database: env.get('DB_DATABASE'),
+        timezone: 'America/Sao_Paulo',
       },
       migrations: {
         naturalSort: true,
         paths: ['database/migrations'],
+      },
+      seeders: {
+        paths: ['database/seeders'],
       },
     },
   },

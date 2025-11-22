@@ -11,17 +11,22 @@ export default class extends BaseSchema {
       table.string('password').notNullable()
       table.enu('type', ['internal', 'external'], {
         useNative: true,
-        enumName: 'user_type'
+        enumName: 'user_type',
       })
-      
-      table.string('profile_pic_url').nullable()
-      table.timestamp('created_at').notNullable()
-      table.timestamp('updated_at').nullable()
+
+      table.enu('role', ['admin', 'organizer', 'attendee'], {
+        useNative: true,
+        enumName: 'user_role',
+      })
+
+      table.timestamp('created_at', { useTz: true }).notNullable()
+      table.timestamp('updated_at', { useTz: true }).nullable()
     })
   }
 
   async down() {
     this.schema.dropTable(this.tableName)
     await this.schema.raw('DROP TYPE IF EXISTS public.user_type CASCADE')
+    await this.schema.raw('DROP TYPE IF EXISTS public.user_role CASCADE')
   }
 }
