@@ -10,6 +10,7 @@ import {
 } from '#validators/subscription_validator'
 import { SubscriptionStatus } from '#models/subscription'
 import { UserRole } from '#models/user'
+import { Certificate } from 'node:crypto'
 
 export default class SubscriptionController {
   /**
@@ -105,7 +106,7 @@ export default class SubscriptionController {
 
     if (subscription.hasAttended()) {
       return response.badRequest({
-        message: 'Usuário já realizou check-in neste evento',
+        message: 'Você realizou check-in neste evento',
       })
     }
 
@@ -140,9 +141,9 @@ export default class SubscriptionController {
     return response.ok({
       subscriptions: subscriptions.map((sub) => ({
         id: sub.id,
+        event: sub.event,
         eventId: sub.eventId,
-        eventName: sub.event.name,
-        eventDate: formatDate(sub.event.date),
+        hasCertificate: sub.certificate !== null,
         status: sub.status,
         checkedInAt: formatDate(sub.checkedInAt),
         createdAt: formatDate(sub.createdAt),

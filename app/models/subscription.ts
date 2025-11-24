@@ -1,8 +1,9 @@
 import { DateTime } from 'luxon'
-import { BaseModel, column, belongsTo } from '@adonisjs/lucid/orm'
+import { BaseModel, column, belongsTo, hasOne } from '@adonisjs/lucid/orm'
 import User from '#models/user'
 import Event from '#models/event'
-import type { BelongsTo } from '@adonisjs/lucid/types/relations'
+import Certificate from '#models/certificate'
+import type { BelongsTo, HasOne } from '@adonisjs/lucid/types/relations'
 
 export enum SubscriptionStatus {
   CONFIRMED = 'confirmed',
@@ -38,6 +39,9 @@ export default class Subscription extends BaseModel {
 
   @belongsTo(() => Event)
   declare event: BelongsTo<typeof Event>
+
+  @hasOne(() => Certificate)
+  declare certificate: HasOne<typeof Certificate>
 
   public async checkIn() {
     this.status = SubscriptionStatus.ATTENDED
@@ -76,7 +80,11 @@ export default class Subscription extends BaseModel {
   }
 
   public static async findByUser(userId: number) {
-    return await this.query().where('userId', userId).preload('event').preload('user')
+    return await this.query()
+      .where('userId', userId)
+      .preload('event')
+      .preload('user')
+      .preload('certificate')
   }
 
   public static async findByEvent(eventId: number) {
@@ -91,7 +99,7 @@ export default class Subscription extends BaseModel {
     // Check if already subscribed
     const existing = await this.findByUserAndEvent(userId, eventId)
     if (existing) {
-      throw new Error('Usuário já está inscrito neste evento')
+      throw new Error('Você já está inscrito(a) neste evento')
     }
 
     const event = await Event.findOrFail(eventId)

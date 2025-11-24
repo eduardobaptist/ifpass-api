@@ -6,6 +6,7 @@ const AuthController = () => import('#controllers/auth_controller')
 const UserController = () => import('#controllers/user_controller')
 const EventController = () => import('#controllers/event_controller')
 const SubscriptionController = () => import('#controllers/subscription_controller')
+const CertificateController = () => import('#controllers/certificate_controller')
 
 // Auth routes
 router.post('/auth/register', [AuthController, 'register'])
@@ -54,3 +55,17 @@ router
   .get('/events/:id/subscriptions', [SubscriptionController, 'eventSubscriptions'])
   .use(middleware.auth())
   .use(middleware.permission({ roles: [UserRole.ORGANIZER, UserRole.ADMIN] }))
+
+// Certificate routes
+router
+  .post('/certificates/issue', [CertificateController, 'issue'])
+  .use(middleware.auth())
+// Validation route - can accept token in body (POST) or query string (GET)
+router.post('/certificates/validate', [CertificateController, 'validate'])
+router.get('/certificates/validate', [CertificateController, 'validate'])
+router
+  .get('/certificates/my-certificates', [CertificateController, 'myCertificates'])
+  .use(middleware.auth())
+router
+  .get('/certificates/:id', [CertificateController, 'show'])
+  .use(middleware.auth())

@@ -8,8 +8,16 @@ export default class extends BaseSchema {
       table.increments('id').primary()
       table.integer('user_id').unsigned().references('id').inTable('users').onDelete('CASCADE')
       table.integer('event_id').unsigned().references('id').inTable('events').onDelete('CASCADE')
+      table
+        .integer('subscription_id')
+        .unsigned()
+        .references('id')
+        .inTable('subscriptions')
+        .onDelete('CASCADE')
+        .nullable()
       table.string('verification_token', 64).notNullable().unique()
       table.string('certificate_number').notNullable().unique()
+      table.string('signature', 255).notNullable() // HMAC signature for token verification
       table.dateTime('issued_at').notNullable()
       table.dateTime('verified_at').nullable()
       table.integer('verification_count').defaultTo(0)
@@ -19,6 +27,7 @@ export default class extends BaseSchema {
       table.unique(['user_id', 'event_id'])
 
       table.index('verification_token')
+      table.index('subscription_id')
     })
   }
 
