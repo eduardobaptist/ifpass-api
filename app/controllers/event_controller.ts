@@ -26,20 +26,31 @@ export default class EventController {
 
     const events = await query.orderBy('date', 'desc')
 
+    // Map events with subscription counts
+    const eventsWithCounts = await Promise.all(
+      events.map(async (event) => {
+        const subscriptionsCount = await event.getSubscriptionsCount()
+
+        return {
+          id: event.id,
+          userId: event.userId,
+          organizerName: event.user.fullName || event.user.email,
+          name: event.name,
+          type: event.type,
+          description: event.description,
+          date: formatDate(event.date),
+          availableSeats: (event.capacity || 0) - subscriptionsCount,
+          location: event.location,
+          capacity: event.capacity,
+          subscriptionsCount: subscriptionsCount,
+          createdAt: formatDate(event.createdAt),
+          updatedAt: formatDate(event.updatedAt),
+        }
+      })
+    )
+
     return response.ok({
-      events: events.map((event) => ({
-        id: event.id,
-        userId: event.userId,
-        organizerName: event.user.fullName || event.user.email,
-        name: event.name,
-        type: event.type,
-        description: event.description,
-        date: formatDate(event.date),
-        location: event.location,
-        capacity: event.capacity,
-        createdAt: formatDate(event.createdAt),
-        updatedAt: formatDate(event.updatedAt),
-      })),
+      events: eventsWithCounts,
     })
   }
 
@@ -50,6 +61,7 @@ export default class EventController {
     const event = await Event.findOrFail(params.id)
     await event.load('user')
     const subscriptionsCount = await event.getSubscriptionsCount()
+    const availableSeats = event.capacity || 0 - subscriptionsCount
 
     return response.ok({
       event: {
@@ -62,6 +74,7 @@ export default class EventController {
         date: formatDate(event.date),
         location: event.location,
         capacity: event.capacity,
+        availableSeats: availableSeats,
         subscriptionsCount,
         isFull: await event.isFull(),
         createdAt: formatDate(event.createdAt),
