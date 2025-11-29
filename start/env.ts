@@ -12,4 +12,8 @@ export default await Env.create(new URL('../', import.meta.url), {
   DB_USER: Env.schema.string(),
   DB_PASSWORD: Env.schema.string.optional(),
   DB_DATABASE: Env.schema.string(),
+
+  // Gmail SMTP credentials for email sending
+  GMAIL_USER: Env.schema.string(),
+  GMAIL_PASSWORD: Env.schema.string(),
 })

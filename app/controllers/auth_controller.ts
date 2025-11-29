@@ -1,9 +1,20 @@
 import type { HttpContext } from '@adonisjs/core/http'
 import User from '#models/user'
+import PendingValidationUser from '#models/pending_validation_user'
 import { registerValidator, registerMessages } from '#validators/register_validator'
 import { loginValidator, loginMessages } from '#validators/login_validator'
+import {
+  internalRegisterValidator,
+  internalRegisterMessages,
+} from '#validators/internal_register_validator'
+import {
+  verifyInternalValidator,
+  verifyInternalMessages,
+} from '#validators/verify_internal_validator'
 import { UserType, UserRole } from '#models/user'
 import { formatDate } from '#utils/date_format'
+import hash from '@adonisjs/core/services/hash'
+import emailService from '#services/email_service'
 
 export default class AuthController {
   /**
@@ -149,6 +160,124 @@ export default class AuthController {
         createdAt: formatDate(user.createdAt),
         updatedAt: formatDate(user.updatedAt),
       },
+    })
+  }
+
+  /**
+   * Register a new internal user (pending validation)
+   */
+  async registerInternal({ request, response }: HttpContext) {
+    const payload = await internalRegisterValidator.validate(request.all(), {
+      messages: internalRegisterMessages,
+    } as any)
+
+    // Check if user already exists
+    const existingUser = await User.findBy('email', payload.email)
+    if (existingUser) {
+      return response.conflict({
+        message: 'Já existe um usuário com este email',
+      })
+    }
+
+    // Check if there's already a pending validation for this email
+    const existingPending = await PendingValidationUser.findByEmail(payload.email)
+    if (existingPending) {
+      // Delete old pending validation
+      await existingPending.delete()
+    }
+
+    // Generate 6-digit verification code
+    const verificationCode = Math.floor(100000 + Math.random() * 900000).toString()
+
+    // Hash password
+    const hashedPassword = await hash.make(payload.password)
+
+    // Create pending validation user
+    const pendingUser = await PendingValidationUser.create({
+      email: payload.email,
+      password: hashedPassword,
+      fullName: payload.fullName || null,
+      verificationCode,
+    })
+
+    // Send verification email
+    try {
+      await emailService.sendVerificationCode(payload.email, verificationCode, payload.fullName)
+    } catch (error) {
+      // If email fails, delete the pending user and return error
+      await pendingUser.delete()
+      return response.internalServerError({
+        message: 'Erro ao enviar email de verificação. Tente novamente mais tarde.',
+      })
+    }
+
+    return response.created({
+      message: 'Email de verificação enviado. Verifique sua caixa de entrada.',
+    })
+  }
+
+  /**
+   * Verify internal user with code and create user account
+   */
+  async verifyInternal({ request, response }: HttpContext) {
+    const payload = await verifyInternalValidator.validate(request.all(), {
+      messages: verifyInternalMessages,
+    } as any)
+
+    // Find pending validation user
+    const pendingUser = await PendingValidationUser.findByEmailAndCode(payload.email, payload.code)
+
+    if (!pendingUser) {
+      return response.badRequest({
+        message: 'Código de verificação inválido ou expirado',
+      })
+    }
+
+    // Check if user already exists (race condition check)
+    const existingUser = await User.findBy('email', payload.email)
+    if (existingUser) {
+      // Clean up pending validation
+      await pendingUser.delete()
+      return response.conflict({
+        message: 'Já existe um usuário com este email',
+      })
+    }
+
+    // Create the user account
+    const user = await User.create({
+      email: pendingUser.email,
+      password: pendingUser.password, // Already hashed
+      fullName: pendingUser.fullName,
+      type: UserType.INTERNAL,
+      role: UserRole.ATTENDEE,
+    })
+
+    // Delete pending validation
+    await pendingUser.delete()
+
+    // Generate access token
+    const token = await User.accessTokens.create(user)
+
+    // Set httpOnly cookie with token
+    response.cookie('auth_token', token.value!.release(), {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === 'production',
+      sameSite: 'lax',
+      maxAge: 60 * 60 * 24 * 7, // 7 days
+      path: '/',
+    })
+
+    return response.ok({
+      user: {
+        id: user.id,
+        email: user.email,
+        fullName: user.fullName,
+        type: user.type,
+        role: user.role,
+        createdAt: formatDate(user.createdAt),
+        updatedAt: formatDate(user.updatedAt),
+      },
+      message: 'Usuário interno verificado e registrado com sucesso',
     })
   }
 }

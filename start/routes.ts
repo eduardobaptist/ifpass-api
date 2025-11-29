@@ -10,6 +10,8 @@ const CertificateController = () => import('#controllers/certificate_controller'
 
 // Auth routes
 router.post('/auth/register', [AuthController, 'register'])
+router.post('/auth/register-internal', [AuthController, 'registerInternal'])
+router.post('/auth/verify-internal', [AuthController, 'verifyInternal'])
 router.post('/auth/login', [AuthController, 'login'])
 router.post('/auth/logout', [AuthController, 'logout']).use(middleware.auth())
 router.get('/auth/me', [AuthController, 'me']).use(middleware.auth())
@@ -57,15 +59,11 @@ router
   .use(middleware.permission({ roles: [UserRole.ORGANIZER, UserRole.ADMIN] }))
 
 // Certificate routes
-router
-  .post('/certificates/issue', [CertificateController, 'issue'])
-  .use(middleware.auth())
+router.post('/certificates/issue', [CertificateController, 'issue']).use(middleware.auth())
 // Validation route - can accept token in body (POST) or query string (GET)
 router.post('/certificates/validate', [CertificateController, 'validate'])
 router.get('/certificates/validate', [CertificateController, 'validate'])
 router
   .get('/certificates/my-certificates', [CertificateController, 'myCertificates'])
   .use(middleware.auth())
-router
-  .get('/certificates/:id', [CertificateController, 'show'])
-  .use(middleware.auth())
+router.get('/certificates/:id', [CertificateController, 'show']).use(middleware.auth())
