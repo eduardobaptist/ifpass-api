@@ -45,9 +45,10 @@ export default class AuthController {
 
     // Generate access token
     const token = await User.accessTokens.create(user)
+    const apiToken = token.value!.release()
 
-    // Set httpOnly cookie with token
-    response.cookie('auth_token', token.value!.release(), {
+    // Set httpOnly cookie with token (WEB)
+    response.cookie('auth_token', apiToken, {
       httpOnly: true,
       secure: process.env.NODE_ENV === 'production',
       sameSite: 'lax',
@@ -65,6 +66,7 @@ export default class AuthController {
         createdAt: formatDate(user.createdAt),
         updatedAt: formatDate(user.updatedAt),
       },
+      token: apiToken, // 👈 MOBILE usa isso
       message: 'Usuário registrado com sucesso',
     })
   }
@@ -83,9 +85,10 @@ export default class AuthController {
 
       // Generate access token
       const token = await User.accessTokens.create(user)
+      const apiToken = token.value!.release()
 
-      // Set httpOnly cookie with token
-      response.cookie('auth_token', token.value!.release(), {
+      // Set httpOnly cookie with token (WEB)
+      response.cookie('auth_token', apiToken, {
         httpOnly: true,
         secure: process.env.NODE_ENV === 'production',
         sameSite: 'lax',
@@ -103,6 +106,7 @@ export default class AuthController {
           createdAt: formatDate(user.createdAt),
           updatedAt: formatDate(user.updatedAt),
         },
+        token: apiToken, // 👈 MOBILE pega daqui
         message: 'Login realizado com sucesso',
       })
     } catch (error) {
@@ -118,7 +122,7 @@ export default class AuthController {
   async logout({ auth, request, response }: HttpContext) {
     const user = auth.getUserOrFail()
 
-    // Get token from Authorization header (set by cookie middleware)
+    // Get token from Authorization header (set by cookie middleware ou mobile)
     const authHeader = request.header('authorization')
     if (authHeader) {
       const tokenValue = authHeader.replace('Bearer ', '')
@@ -266,9 +270,10 @@ export default class AuthController {
 
     // Generate access token
     const token = await User.accessTokens.create(user)
+    const apiToken = token.value!.release()
 
-    // Set httpOnly cookie with token
-    response.cookie('auth_token', token.value!.release(), {
+    // Set httpOnly cookie with token (WEB)
+    response.cookie('auth_token', apiToken, {
       httpOnly: true,
       secure: process.env.NODE_ENV === 'production',
       sameSite: 'lax',
@@ -286,6 +291,7 @@ export default class AuthController {
         createdAt: formatDate(user.createdAt),
         updatedAt: formatDate(user.updatedAt),
       },
+      token: apiToken, // 👈 MOBILE pega daqui após verificação interna
       message: 'Usuário interno verificado e registrado com sucesso',
     })
   }
