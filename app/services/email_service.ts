@@ -21,7 +21,7 @@ class EmailService {
    * Send verification code email to user
    */
   async sendVerificationCode(email: string, code: string, fullName?: string | null): Promise<void> {
-    const html = this.getVerificationEmailTemplate(code, fullName)
+    const html = this.getVerificationEmailTemplate(code, fullName?.split(' ')[0] || fullName)
 
     // Convert base64 to buffer for email attachment
     const imgBuffer = Buffer.from(this.LOGO_BASE64, 'base64')

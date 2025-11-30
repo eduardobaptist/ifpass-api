@@ -9,7 +9,8 @@ import {
   checkInMessages,
 } from '#validators/subscription_validator'
 import { SubscriptionStatus } from '#models/subscription'
-import { UserRole } from '#models/user'
+import { UserRole, UserType } from '#models/user'
+import { EventType } from '#models/event'
 import { Certificate } from 'node:crypto'
 
 export default class SubscriptionController {
@@ -21,6 +22,16 @@ export default class SubscriptionController {
     const payload = await subscribeValidator.validate(request.all(), {
       messages: subscribeMessages,
     } as any)
+
+    // Check if event exists and user can subscribe to it
+    const event = await Event.findOrFail(payload.eventId)
+
+    // External users can only subscribe to external events
+    if (user.type === UserType.EXTERNAL && event.type === EventType.INTERNAL) {
+      return response.forbidden({
+        message: 'Usuários externos não podem se inscrever em eventos internos',
+      })
+    }
 
     try {
       const subscription = await Subscription.subscribe(user.id, payload.eventId)

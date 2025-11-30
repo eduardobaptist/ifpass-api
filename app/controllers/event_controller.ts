@@ -8,6 +8,7 @@ import {
   updateEventMessages,
 } from '#validators/event_validator'
 import { EventType } from '#models/event'
+import { UserType } from '#models/user'
 
 export default class EventController {
   /**
@@ -16,6 +17,14 @@ export default class EventController {
   async index({ request, response, auth }: HttpContext) {
     const user = auth.getUserOrFail()
     let query = Event.query().preload('user')
+
+    // Filter events by user type:
+    // - External users can ONLY see external events
+    // - Internal users can see both internal and external events
+    if (user.type === UserType.EXTERNAL) {
+      query = query.where('type', EventType.EXTERNAL)
+    }
+    // Internal users can see all events, so no filter needed
 
     // Organizers and admins can see their own events
     if (user.canManageEvents()) {
@@ -57,8 +66,17 @@ export default class EventController {
   /**
    * Show a specific event
    */
-  async show({ params, response }: HttpContext) {
+  async show({ params, response, auth }: HttpContext) {
+    const user = auth.getUserOrFail()
     const event = await Event.findOrFail(params.id)
+
+    // External users can only access external events
+    if (user.type === UserType.EXTERNAL && event.type === EventType.INTERNAL) {
+      return response.forbidden({
+        message: 'Você não tem permissão para visualizar este evento',
+      })
+    }
+
     await event.load('user')
     const subscriptionsCount = await event.getSubscriptionsCount()
     const availableSeats = event.capacity || 0 - subscriptionsCount
