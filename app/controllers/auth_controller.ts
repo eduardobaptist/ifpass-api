@@ -15,6 +15,7 @@ import { UserType, UserRole } from '#models/user'
 import { formatDate } from '#utils/date_format'
 import hash from '@adonisjs/core/services/hash'
 import emailService from '#services/email_service'
+import db from '@adonisjs/lucid/services/db'
 
 export default class AuthController {
   /**
@@ -243,14 +244,22 @@ export default class AuthController {
       })
     }
 
-    // Create the user account
-    const user = await User.create({
-      email: pendingUser.email,
-      password: pendingUser.password, // Already hashed
-      fullName: pendingUser.fullName,
-      type: UserType.INTERNAL,
-      role: UserRole.ATTENDEE,
-    })
+    const result = await db
+      .insertQuery()
+      .table('users')
+      .insert({
+        email: pendingUser.email,
+        password: pendingUser.password,
+        full_name: pendingUser.fullName,
+        type: UserType.INTERNAL,
+        role: UserRole.ATTENDEE,
+        created_at: new Date(),
+        updated_at: new Date(),
+      })
+      .returning('id')
+
+    // Fetch the created user
+    const user = await User.findOrFail(result[0].id)
 
     // Delete pending validation
     await pendingUser.delete()
